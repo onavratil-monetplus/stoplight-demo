@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: testapi
+  version: '1.0'
+  contact:
+    name: Ondrej Navratil
+  description: THis is just a test API
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /my/sample/path:
+    get:
+      summary: My sample endpoint
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      operationId: get-my-sample-path
+      description: Op desc
+components:
+  schemas: {}
