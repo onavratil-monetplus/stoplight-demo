@@ -21,6 +21,6 @@ paths:
                 type: object
                 properties: {}
       operationId: get-my-sample-path
-      description: Op desc
+      description: Op desc2
 components:
   schemas: {}
