@@ -32,6 +32,17 @@ paths:
                     properties:
                       timestamp:
                         type: string
+              examples:
+                example1:
+                  value:
+                    status: success
+                    data:
+                      timestamp: TOTO JE EXAMPLE 1
+                example2:
+                  value:
+                    status: fail
+                    data:
+                      timestamp: EXAMPLE 2
       requestBody:
         content:
           application/json:
