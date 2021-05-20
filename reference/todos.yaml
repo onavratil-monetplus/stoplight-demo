@@ -1,0 +1,59 @@
+openapi: 3.1.0
+info:
+  title: todos
+  version: '1.0'
+  summary: 'My test API '
+  description: Test API description
+  contact:
+    name: Ondra Navratil
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /todo:
+    post:
+      summary: Create new TODO
+      operationId: post-todo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - fail
+                      - error
+                  data:
+                    type: object
+                    properties:
+                      timestamp:
+                        type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    note:
+                      type: string
+                    id:
+                      type: number
+                      description: Unique identifier
+                      minimum: 1
+                  required:
+                    - note
+                    - id
+      description: test
+      tags:
+        - TEST TAG
+components:
+  schemas: {}
+tags:
+  - name: TEST TAG
