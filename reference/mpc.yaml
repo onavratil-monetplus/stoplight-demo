@@ -25,6 +25,8 @@ paths:
                     $ref: '#/components/schemas/point'
                   x:
                     $ref: '#/components/schemas/point'
+                required:
+                  - xb
       tags:
         - Key Generation
       description: Generates and registers the key fragments on server. Server rogue key attacks not addressed in the current implementation.
@@ -83,6 +85,10 @@ paths:
                   type: string
                 m:
                   $ref: '#/components/schemas/message'
+              required:
+                - ra1
+                - ra2
+                - m
   /sign/finalize:
     post:
       summary: Finalize MPC Signing
