@@ -40,7 +40,7 @@ paths:
                   $ref: '#/components/schemas/point'
               required:
                 - xa
-  /sign/init:
+  /signature/init:
     post:
       summary: Initialize MPC Signing
       operationId: post-sign-init
@@ -89,7 +89,8 @@ paths:
                 - ra1
                 - ra2
                 - m
-  /sign/finalize:
+    parameters: []
+  /signature/finalize:
     post:
       summary: Finalize MPC Signing
       operationId: post-sign-finalize
@@ -125,6 +126,7 @@ paths:
                   $ref: '#/components/schemas/point'
               required:
                 - sa
+    parameters: []
 components:
   schemas:
     point:
