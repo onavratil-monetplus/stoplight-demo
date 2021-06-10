@@ -1,0 +1,252 @@
+@startuml sequence-diagram
+ autonumber
+skinparam ParticipantPadding 0
+skinparam BoxPadding 20
+skinparam LifeLineBackgroundColor black
+
+box "Front End" #LightSkyBlue
+    database fest as "Persistent\nFE Storage"
+	participant fe as "MPC Client"
+end box
+
+box "Back End" #LightGreen
+	participant be as "MPC Server"
+    database best as "Persistent\nBE  Storage"
+end box
+
+== Key Generation and Agreement ==
+[-> fe: Register keys 
+activate fe
+note right of fe
+    <latex>\text{Generate random }x_A \in \mathbb{Z}_q</latex> 
+    (random big int from range 0 .. q)
+
+    <latex>X_A = x_A \cdot G</latex> 
+    (point on curve obtained by point multiplication of generator)
+end note
+
+fe ->o fest: persist <latex>x_A</latex>
+hnote over fe,be #TECHNOLOGY
+    We do not require any commitment to the knowledge of the generated values,
+    we assume that the server is implicitly trusted.
+
+    Possibility of rogue key attacks is to be eliminated in future versions.
+end hnote
+
+fe -> be: ""POST /keygen"" <latex>(X_A)</latex>
+activate be
+note right of be
+    <latex>\text{Generate random }x_B \in \mathbb{Z}_q</latex> 
+    (random big int from range 0 .. q)
+    
+    <latex>X_B = x_B \cdot G</latex> 
+    (point on curve obtained by point multiplication of generator)
+end note
+note right of be
+    <latex>X = X_A + X_B</latex> 
+    (the resulting public key)
+end note
+be ->o best: persist <latex>x_B, X</latex>
+be --> fe: <latex>X, X_B</latex>
+hnote over be,fe #TECHNOLOGY
+    The complete public key is returned for debug reasons only.
+end hnote
+deactivate be
+
+note right of fe
+    <latex>X = X_A + X_B</latex> 
+    (the resulting public key)
+end note
+fe ->o fest: persist <latex>X</latex>
+hnote over fe #TECHNOLOGY
+    Check that the pubkey is identical.
+end hnote
+[<-- fe: OK
+deactivate fe
+
+...
+== Signing Process ==
+...
+
+[->fe: message to sign <latex>m</latex>
+activate fe
+note right of fe
+    In the final application, the message will probably be recieved 
+    via ""getPendingTransactions"" service 
+end note
+hnote over fe,be #TECHNOLOGY
+    In the current version, we will follow the generation of nonces
+    exactly as described in the original algorithm.
+
+    Based on discussion and analysis by CROCS, we may decide later to replace
+    one of the values with certain deterministic derivative, thus reducing
+    the number of communication rounds necessary for the signing process.
+end hnote
+
+note right of fe
+    <latex>\text{Generate random } r_{A,1}, r_{A,2} \in \mathbb{Z}_q</latex>
+    (nonces as bigint from range 0 .. q) 
+end note
+note right of fe
+    <latex>R_{A,1} = r_{A,1} \cdot G </latex>
+    <latex>R_{A,2} = r_{A,2} \cdot G </latex>
+    (points on curve obtained by point multiplication of generator)
+end note
+
+fe -> be: ""POST /signature/init"" <latex>(R_{A,1}, R_{A,2}, m)</latex>
+activate be
+
+hnote over fe,be #TECHNOLOGY
+    The message itself may be omitted in the production API
+    as it is determined by the signed transaction itself.
+
+    On the other hand, other identifiers, such as transactionID
+    or the ID of the signing instance may be included in order
+    to retrieve proper <latex>x_B, m</latex> from BE storage.
+end hnote
+
+note right of be
+    <latex>\text{Generate random } r_{B,1}, r_{B,2} \in \mathbb{Z}_q</latex>
+    (nonces as bigint from range 0 .. q) 
+end note
+note right of be
+    <latex>R_{B,1} = r_{B,1} \cdot G </latex>
+    <latex>R_{B,2} = r_{B,2} \cdot G </latex>
+    (points on curve obtained by point multiplication of generator)
+end note
+note right of be
+    <latex>R_1 = R_{A,1} + R_{B,1}</latex>
+    <latex>R_2 = R_{A,2} + R_{B,2}</latex>
+    (curve point adition)
+end note
+
+note right of be
+    <latex>\beta = \operatorname{H}(R_1 || R_2 || m)</latex>
+    (beta is a random bigint given by hash function output size)
+
+    Note that persistence in point representation between BE/FE is critical.
+end note
+
+note right of be
+    <latex>R = R_1 + \beta \cdot R_2</latex>
+    (point multiplication by beta and curve point addition)
+end note
+|||
+note right of be
+    Current implementation only persists the latest private key
+    registered via the ""/keygen"" endpoint.
+end note
+best -->o be: retrieve <latex>x_B</latex>
+|||
+note right of be
+    <latex>s_B = r_{B,1} + \beta \cdot r_{B,2} + \operatorname{H}(R || m)  \cdot x_B</latex>
+    (big integer arithmetic along with some hashing)
+end note
+|||
+note right of be
+    Once again we are limited to one concurrent operation only.
+    We can thus easily store the server-side signature fragment.
+end note
+be ->o best: store <latex>s_B, R, m</latex>
+|||
+
+be --> fe: <latex>R, R_1, R_2, R_{B,1}, R_{B,2}, s_B, \beta</latex>
+hnote over fe,be #TECHNOLOGY
+    Based on the use cases, the server-side signature component
+    may or may not be part of the response in production. 
+    
+    We include it in the current version for debugging purposes.
+    For the same purpose, the server generated nonces 
+    are included.
+end hnote
+deactivate be
+
+note right of fe
+    <latex>R_1 = R_{A,1} + R_{B,1}</latex>
+    <latex>R_2 = R_{A,2} + R_{B,2}</latex>
+    (curve point adition)
+end note
+note right of fe
+    <latex>\beta = \operatorname{H}(R_1 || R_2 || m)</latex>
+    (beta is a random bigint given by hash function output size)
+end note
+note right of fe
+    <latex>R = R_1 + \beta \cdot R_2</latex>
+    (point multiplication by beta and curve point addition)
+end note
+hnote over fe #TECHNOLOGY
+    Verify that the values match server response.
+end hnote
+|||
+note right of fe
+    FE should always persists only one private key,
+    namely the latest registered via the ""/keygen"" endpoint.
+end note
+fest -->o fe: retrieve <latex>x_A</latex>
+|||
+
+note right of fe
+    <latex>s_A = r_{A,1} + \beta \cdot r_{A,2} + \operatorname{H}(R || m) \cdot x_A</latex>
+    (big integer arithmetic along with some hashing)
+end note
+
+note right of fe
+    <latex>s = s_A + s_B</latex>
+    (bigint arithmetics)
+
+    Note again that this might not be needed in production, only server needs the signature.
+end note
+
+fe -> be: ""POST /signature/finalize"" <latex>(s_A, s, R)</latex>
+activate be
+hnote over be,fe #TECHNOLOGY
+    The complete signature value is sent for debug reasons only.
+    Technically, only the fe signature fragment is necessary. 
+end hnote
+|||
+note right of be
+    For sake of simplicity of this version, 
+    we assume no request interlacing appears.
+end note
+best ->o be: retrieve <latex>s_B, X, R, m</latex>
+|||
+note right of be
+    <latex>s = s_A + s_B</latex>
+    (bigint arithmetics)
+end note
+
+hnote over be,fe #TECHNOLOGY
+    Verify that both of the signatures <latex>R, s</latex> are identical.
+end hnote
+
+
+hnote over be #TECHNOLOGY
+    Check if <latex>R, s</latex> verifies <latex>X, m</latex>
+
+    <latex>8 \cdot s \cdot G \overset{?}{=} 8 \cdot R + 8 \cdot \operatorname{H}(R || m) \cdot X</latex>
+    (check for equality, 8 is the curve cofactor)
+end hnote
+
+alt #DarkSalmon Verification failed 
+    be --X fe: NOK, error 
+end alt
+|||
+note right of be
+    BE considers the transaction as verified and stores
+    the final signature as a proof (in production only).
+end note
+be ->o best: <latex>R,s</latex>
+|||
+be --> fe: OK
+deactivate be
+...
+note right of fe
+    FE may further decide to: 
+    * register a new key
+    * reuse the existing key to sign the same message again (nonces will differ)
+    * reuse the existing key to sign a different message
+end note
+
+[<-- fe: OK
+deactivate fe
+@enduml
