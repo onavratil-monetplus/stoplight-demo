@@ -1,4 +1,0 @@
-type: number
-title: id
-description: Unique Identifier
-minimum: 1

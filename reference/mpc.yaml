@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: Schnorr-like Multiparty Signatures
+  version: '1.0'
+  contact:
+    name: Ondrřej Navrátlil
+    email: onavratil@monetplus.cz
+  description: PoC API to generate multiparty signatures based on the MuSig2 scheme for 2-of-2 over Ed25519.
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /keygen:
+    post:
+      summary: Generate Aggregated Key
+      operationId: post-keygen
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  xb:
+                    $ref: '#/components/schemas/point'
+                  x:
+                    $ref: '#/components/schemas/point'
+      tags:
+        - Key Generation
+      description: Generates and registers the key fragments on server. Server rogue key attacks not addressed in the current implementation.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                xa:
+                  $ref: '#/components/schemas/point'
+              required:
+                - xa
+  /sign/init:
+    post:
+      summary: Initialize MPC Signing
+      operationId: post-sign-init
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  r:
+                    $ref: '#/components/schemas/point'
+                  r1:
+                    $ref: '#/components/schemas/point'
+                  r2:
+                    $ref: '#/components/schemas/point'
+                  rb1:
+                    $ref: '#/components/schemas/point'
+                  rb2:
+                    $ref: '#/components/schemas/point'
+                  sb:
+                    $ref: '#/components/schemas/bigint'
+                  beta:
+                    $ref: '#/components/schemas/bigint'
+                required:
+                  - rb1
+                  - rb2
+                  - sb
+      tags:
+        - Signing
+      description: The first of two steps in the signing process. May be omitted later if server nonces are derived deterministically from previous communication.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ra1:
+                  type: string
+                ra2:
+                  type: string
+                m:
+                  $ref: '#/components/schemas/message'
+  /sign/finalize:
+    post:
+      summary: Finalize MPC Signing
+      operationId: post-sign-finalize
+      responses:
+        '200':
+          description: OK - Signature created and verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        '400':
+          description: Bad Request - the resulting signature does not verify the message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      tags:
+        - Signing
+      description: Complete the signing process providing FE fragment of the message signature.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sa:
+                  $ref: '#/components/schemas/bigint'
+                s:
+                  $ref: '#/components/schemas/bigint'
+                r:
+                  $ref: '#/components/schemas/point'
+              required:
+                - sa
+components:
+  schemas:
+    point:
+      title: Curve Point
+      type: string
+      description: Representation of the a point on the selected elliptic curve.
+    bigint:
+      title: Big Integer
+      type: string
+      description: Representation of big integer.
+    message:
+      title: Message
+      type: string
+      description: Arbitrary string representing the signed message.
+tags:
+  - name: Key Generation
+  - name: Signing
