@@ -80,9 +80,9 @@ paths:
               type: object
               properties:
                 ra1:
-                  type: string
+                  $ref: '#/components/schemas/point'
                 ra2:
-                  type: string
+                  $ref: '#/components/schemas/point'
                 m:
                   $ref: '#/components/schemas/message'
               required:
