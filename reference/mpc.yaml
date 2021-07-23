@@ -5,7 +5,40 @@ info:
   contact:
     name: Ondrřej Navrátlil
     email: onavratil@monetplus.cz
-  description: PoC API to generate multiparty signatures based on the MuSig2 scheme for 2-of-2 over Ed25519.
+  description: |-
+    PoC API to generate multiparty signatures based on the MuSig2 scheme for 2-of-2 over Ed25519.
+
+    # Testing features...
+
+    ## Can have json schema?
+    ```yaml json_schema
+    type: object
+    properties:
+      some:
+        type: integer
+      other:
+        type: string
+    ```
+
+    ## Can have tables?
+
+    My | Best | Table
+    --- | --- | ---
+    Here | it | comes
+    Here | it | comes2
+    Here | it | comes3
+
+    ## Can have sample requests?
+
+    ```yaml http
+    method: post
+    url: 'http://localhost:3000/keygen'
+    body: |-
+      {
+        "xa": "string"
+      }
+
+    ```
 servers:
   - url: 'http://localhost:3000'
 paths:
